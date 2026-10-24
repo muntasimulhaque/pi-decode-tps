@@ -1,5 +1,9 @@
 # pi-decode-tps
 
+[![npm](https://img.shields.io/npm/v/pi-decode-tps?style=flat-square)](https://www.npmjs.com/package/pi-decode-tps)
+[![CI](https://github.com/muntasimulhaque/pi-decode-tps/actions/workflows/ci.yml/badge.svg)](https://github.com/muntasimulhaque/pi-decode-tps/actions/workflows/ci.yml)
+[![license](https://img.shields.io/npm/l/pi-decode-tps?style=flat-square)](LICENSE)
+
 Decode throughput for Pi's footer: **live while the model streams, exact when it finishes.**
 
 ```text
