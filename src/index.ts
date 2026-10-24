@@ -4,12 +4,9 @@ import { formatTps } from "./measure.ts";
 import { formatReport } from "./report.ts";
 
 const STATUS_KEY = "tps";
-const TICK_MS = 250;
 
 export default function piDecodeTps(pi: ExtensionAPI): void {
   const tracker = new TpsTracker();
-  let ticker: ReturnType<typeof setInterval> | undefined;
-  let tickerCtx: ExtensionContext | undefined;
   let lastStatusText: string | undefined;
 
   function canRender(ctx: ExtensionContext): boolean {
@@ -32,24 +29,8 @@ export default function piDecodeTps(pi: ExtensionAPI): void {
     ctx.ui.setStatus(STATUS_KEY, undefined);
   }
 
-  function stopTicker(): void {
-    if (ticker) {
-      clearInterval(ticker);
-      ticker = undefined;
-    }
-    tickerCtx = undefined;
-  }
-
-  function renderLive(ctx: ExtensionContext, live: number): void {
-    if (!canRender(ctx)) return;
-    if (live > 0) {
-      setStatus(ctx, ctx.ui.theme.fg("accent", `⚡ ${formatTps(live)} t/s`));
-    } else {
-      setStatus(ctx, ctx.ui.theme.fg("dim", "⚡ …"));
-    }
-  }
-
   function renderShown(ctx: ExtensionContext): void {
+    if (!canRender(ctx)) return;
     const shown = tracker.shown;
     if (shown) {
       setStatus(ctx, ctx.ui.theme.fg("dim", `⚡ ${formatTps(shown.tps)} t/s`));
@@ -58,20 +39,7 @@ export default function piDecodeTps(pi: ExtensionAPI): void {
     }
   }
 
-  function startTicker(ctx: ExtensionContext): void {
-    stopTicker();
-    if (!canRender(ctx)) return;
-
-    tickerCtx = ctx;
-    ticker = setInterval(() => {
-      if (!tickerCtx) return;
-      renderLive(tickerCtx, tracker.liveTps(Date.now()));
-    }, TICK_MS);
-    ticker.unref?.();
-  }
-
   pi.on("session_start", (_event, ctx) => {
-    stopTicker();
     tracker.resetAll();
     clearStatus(ctx);
   });
@@ -80,14 +48,12 @@ export default function piDecodeTps(pi: ExtensionAPI): void {
     tracker.resetTask();
   });
 
-  pi.on("message_start", (event, ctx) => {
+  pi.on("message_start", (event) => {
     if (event.message.role !== "assistant") return;
-    stopTicker();
     tracker.beginMessage(event.message.timestamp);
-    tickerCtx = ctx;
   });
 
-  pi.on("message_update", (event, ctx) => {
+  pi.on("message_update", (event) => {
     if (event.message.role !== "assistant") return;
 
     const update = event.assistantMessageEvent;
@@ -100,17 +66,11 @@ export default function piDecodeTps(pi: ExtensionAPI): void {
     }
     if (!update.delta) return;
 
-    const now = Date.now();
-    tracker.recordDelta(update.delta, now);
-    if (!tracker.isStreaming) return;
-
-    if (!ticker) startTicker(ctx);
-    renderLive(ctx, tracker.liveTps(now));
+    tracker.recordDelta(update.delta, Date.now());
   });
 
   pi.on("message_end", (event, ctx) => {
     if (event.message.role !== "assistant") return;
-    stopTicker();
 
     const message = event.message;
     tracker.finishMessage({
@@ -122,34 +82,30 @@ export default function piDecodeTps(pi: ExtensionAPI): void {
       provider: message.provider,
     });
 
-    // The response may be too short to replace the footer value, or it may
-    // have failed. In both cases, leave the last meaningful exact value in
-    // place instead of freezing the live estimate.
-    renderShown(ctx);
-  });
-
-  pi.on("agent_settled", (_event, ctx) => {
-    // Safety net for an error path that ends a run without message_end:
-    // never leave the live ticker running or the live number frozen in place.
-    stopTicker();
+    // Stable by default: update the footer once per completed response.
+    // The previous exact value stays visible while the next one streams.
     renderShown(ctx);
   });
 
   pi.on("session_shutdown", (_event, ctx) => {
-    stopTicker();
     clearStatus(ctx);
     tracker.resetAll();
   });
 
   pi.registerCommand("tps", {
-    description:
-      "Show decode TPS details (excludes TTFT and tool time); use /tps reset to clear",
+    description: "Show decode TPS details; use /tps reset to clear",
     handler: async (args, ctx) => {
-      if (args.trim() === "reset") {
-        stopTicker();
+      const arg = args.trim().toLowerCase();
+
+      if (arg === "reset") {
         tracker.resetAll();
         clearStatus(ctx);
         ctx.ui.notify("Decode TPS statistics reset.", "info");
+        return;
+      }
+
+      if (arg !== "") {
+        ctx.ui.notify("Usage: /tps or /tps reset", "info");
         return;
       }
 
