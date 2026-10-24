@@ -41,6 +41,7 @@ export default function piDecodeTps(pi: ExtensionAPI): void {
   }
 
   function renderLive(ctx: ExtensionContext, live: number): void {
+    if (!canRender(ctx)) return;
     if (live > 0) {
       setStatus(ctx, ctx.ui.theme.fg("accent", `⚡ ${formatTps(live)} t/s`));
     } else {

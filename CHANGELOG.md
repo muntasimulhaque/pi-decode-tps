@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.1
+
+- Skip theme/status work outside TUI mode (print, JSON, and RPC sessions).
+
 ## 0.1.0
 
 - Initial release.

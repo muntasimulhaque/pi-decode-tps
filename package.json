@@ -1,6 +1,6 @@
 {
   "name": "pi-decode-tps",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Decode TPS in Pi's footer: live while streaming, exact when done",
   "keywords": [
     "pi-package",
