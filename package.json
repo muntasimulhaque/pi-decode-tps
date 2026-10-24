@@ -1,0 +1,53 @@
+{
+  "name": "pi-decode-tps",
+  "version": "0.1.0",
+  "description": "Decode TPS in Pi's footer: live while streaming, exact when done",
+  "keywords": [
+    "pi-package",
+    "pi-extension",
+    "tps",
+    "tokens-per-second",
+    "decode-throughput",
+    "llm"
+  ],
+  "type": "module",
+  "license": "MIT",
+  "author": "Muntasim Ul Haque",
+  "homepage": "https://github.com/muntasimulhaque/pi-decode-tps#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/muntasimulhaque/pi-decode-tps.git"
+  },
+  "bugs": {
+    "url": "https://github.com/muntasimulhaque/pi-decode-tps/issues"
+  },
+  "files": [
+    "src",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "pi": {
+    "extensions": [
+      "./src/index.ts"
+    ]
+  },
+  "engines": {
+    "node": ">=22.19.0"
+  },
+  "scripts": {
+    "test": "node --test",
+    "typecheck": "tsc --noEmit",
+    "pack:check": "npm pack --dry-run"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-ai": ">=1.4.0",
+    "@earendil-works/pi-coding-agent": ">=1.4.0"
+  },
+  "devDependencies": {
+    "@earendil-works/pi-ai": "1.4.0",
+    "@earendil-works/pi-coding-agent": "1.4.0",
+    "@types/node": "^22.0.0",
+    "typescript": "^5.9.0"
+  }
+}

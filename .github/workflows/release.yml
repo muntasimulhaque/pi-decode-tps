@@ -1,0 +1,50 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+  id-token: write # npm trusted publishing (OIDC) + provenance
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      # OIDC trusted publishing needs npm >= 11.5.1. No registry-url/token:
+      # an empty _authToken line would defeat trusted publishing.
+      - run: npm install -g npm@^11.5.1
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+
+      - name: Verify tag matches package version
+        run: |
+          node - <<'NODE'
+          const version = require("./package.json").version;
+          const tag = process.env.GITHUB_REF_NAME.replace(/^v/, "");
+          if (version !== tag) {
+            console.error(`Tag v${tag} does not match package.json version ${version}`);
+            process.exit(1);
+          }
+          NODE
+
+      # The first publish is done manually (npm requires a package to exist
+      # before a trusted publisher can be attached). Tagging that same version
+      # later is a no-op instead of a failed release.
+      - name: Publish to npm
+        run: |
+          set -euo pipefail
+          version="$(node -p 'require("./package.json").version')"
+          if npm view "pi-decode-tps@${version}" version >/dev/null 2>&1; then
+            echo "pi-decode-tps@${version} is already published; skipping."
+            exit 0
+          fi
+          npm publish --provenance --access public
